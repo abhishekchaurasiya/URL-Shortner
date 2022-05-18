@@ -98,7 +98,7 @@ let getUrlCode = async function (req, res) {
             if (!findUrlCode) {
                 return res.status(404).send({ status: false, message: "Not found this url code." })
             }
-            // res.status(200).send({ status: true, data: findUrlCode })    
+            res.status(200).send({ status: true, data: findUrlCode })
         }
 
     } catch (error) {
