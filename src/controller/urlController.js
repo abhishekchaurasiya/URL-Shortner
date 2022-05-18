@@ -42,11 +42,21 @@ const urlShorten = async function (req, res) {
         .send({ status: false, message: "No data provided" });
     }
 
-    if (!validUrl.isUri(baseUrl)) {
+    const validUrl =
+      /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-/]))?/.test(
+        baseUrl
+      );
+    if (!validUrl) {
       return res
         .status(400)
         .send({ status: false, message: "base url invalid" });
     }
+
+    // if (!validUrl.isUri(baseUrl)) {
+    //   return res
+    //     .status(400)
+    //     .send({ status: false, message: "base url invalid" });
+    // }
 
     const shorIdCharacters = shortid.characters(
       "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$@"
@@ -62,11 +72,21 @@ const urlShorten = async function (req, res) {
         .send({ status: false, message: "Long url is required" });
     }
 
-    if (!validUrl.isUri(longUrl)) {
+    const validLongUrl =
+      /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-/]))?/.test(
+        longUrl
+      );
+    if (!validLongUrl) {
       return res
         .status(400)
-        .send({ status: false, message: "Long url invalid" });
+        .send({ status: false, message: "Long url is required" });
     }
+
+    // if (!validUrl.isUri(longUrl)) {
+    //   return res
+    //     .status(400)
+    //     .send({ status: false, message: "Long url invalid" });
+    // }
 
     let longUrlIsAlreadyUsed = await urlModel.findOne({ longUrl });
     if (longUrlIsAlreadyUsed) {
@@ -93,26 +113,26 @@ let getUrlCode = async function (req, res) {
     let requestParams = req.params.urlCode;
 
     let cachesUrlData = await GET_ASYNC(`${requestParams}`);
-    console.log(cachesUrlData)
-    const test = JSON.parse(cachesUrlData);
-    console.log(test);
+
+    //convert to object
+    const urlData = JSON.parse(cachesUrlData);
     if (cachesUrlData) {
       console.log("cache");
-      return res.status(200).redirect(test.longUrl);
+      return res.redirect(urlData.longUrl);
     } else {
       let findUrlCode = await urlModel
         .findOne({ urlCode: requestParams })
         .select({ urlCode: 1, longUrl: 1, shortUrl: 1 });
-
-      // res.redirect(findUrlCode.longUrl)
-      await SET_ASYNC(`${requestParams}`, JSON.stringify(findUrlCode));
 
       if (!findUrlCode) {
         return res
           .status(404)
           .send({ status: false, message: "Not found this url code." });
       }
-      // res.status(200).send({ status: true, data: findUrlCode })
+
+      // res.redirect(findUrlCode.longUrl)
+      await SET_ASYNC(`${requestParams}`, JSON.stringify(findUrlCode));
+      res.redirect(findUrlCode.longUrl);
     }
   } catch (error) {
     res.status(500).send({ status: false, message: error.message });
