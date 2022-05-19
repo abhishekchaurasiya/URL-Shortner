@@ -87,8 +87,7 @@ let getUrlCode = async function (req, res) {
         const urlData = JSON.parse(cachesUrlData);
 
         if (cachesUrlData) {
-
-            return res.status(200).redirect(urlData.longUrl);
+            return res.status(302).send({ data: urlData.longUrl });
         } else {
             let findUrlCode = await urlModel.findOne({ urlCode: requestParams }).select({ urlCode: 1, longUrl: 1, shortUrl: 1 });
 
@@ -96,11 +95,9 @@ let getUrlCode = async function (req, res) {
             await SET_ASYNC(`${requestParams}`, JSON.stringify(findUrlCode));
 
             if (!findUrlCode) {
-                return res
-                    .status(404)
-                    .send({ status: false, message: "Not found this url code." });
+                return res.status(404).send({ status: false, message: "Not found this url code." });
             }
-            // res.status(200).send({ status: true, data: findUrlCode })
+            res.status(200).send({ status: true, data: findUrlCode })
         }
     } catch (error) {
         res.status(500).send({ status: false, message: error.message });
