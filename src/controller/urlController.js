@@ -38,9 +38,7 @@ const urlShorten = async function (req, res) {
         let requestBody = req.body;
 
         if (!isValidRequestBody(requestBody)) {
-            return res
-                .status(400)
-                .send({ status: false, message: "No data provided" });
+            return res.status(400).send({ status: false, message: "No data provided" });
         }
 
         if (!validUrl.test(baseUrl)) {
@@ -65,7 +63,7 @@ const urlShorten = async function (req, res) {
 
         let longUrlIsAlreadyUsed = await urlModel.findOne({ longUrl });
         if (longUrlIsAlreadyUsed) {
-            return res.status(400).send({ status: false, message: "This Url already exists" });
+            return res.status(400).send({ status: false, message: "This Url already exists", data: longUrlIsAlreadyUsed });
         }
 
         let shortUrl = baseUrl + "/" + urlCode;
