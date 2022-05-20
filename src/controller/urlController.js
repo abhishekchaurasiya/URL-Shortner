@@ -1,6 +1,8 @@
 const urlModel = require("../model/urlModel");
 const shortid = require("shortid");
-const validUrl = require("valid-url");
+// const validUrl = require("valid-url");
+
+const { isValidData, isValidRequestBody, validUrl } = require("../utils/validator")
 
 const redis = require("redis");
 
@@ -30,17 +32,18 @@ const GET_ASYNC = promisify(redisClient.GET).bind(redisClient);
 
 let baseUrl = "http://localhost:3000";
 
-const { isValidRequestBody, isValidData } = require("../utils/validator");
 
 const urlShorten = async function (req, res) {
     try {
         let requestBody = req.body;
 
         if (!isValidRequestBody(requestBody)) {
-            return res.status(400).send({ status: false, message: "No data provided" });
+            return res
+                .status(400)
+                .send({ status: false, message: "No data provided" });
         }
 
-        if (!validUrl.isUri(baseUrl)) {
+        if (!validUrl.test(baseUrl)) {
             return res.status(400).send({ status: false, message: "base url invalid" });
         }
 
@@ -56,8 +59,8 @@ const urlShorten = async function (req, res) {
             return res.status(400).send({ status: false, message: "Long url is required" });
         }
 
-        if (!validUrl.isUri(longUrl)) {
-            return res.status(400).send({ status: false, message: "Long url invalid" });
+        if (!validUrl.test(longUrl)) {
+            return res.status(400).send({ status: false, message: "Long url is invalid" });
         }
 
         let longUrlIsAlreadyUsed = await urlModel.findOne({ longUrl });
@@ -84,20 +87,19 @@ let getUrlCode = async function (req, res) {
 
         let cachesUrlData = await GET_ASYNC(`${requestParams}`);
 
+        //convert to object
         const urlData = JSON.parse(cachesUrlData);
-
         if (cachesUrlData) {
-            return res.status(302).send({ data: urlData.longUrl });
+            return res.status(302).redirect(urlData.longUrl);
         } else {
             let findUrlCode = await urlModel.findOne({ urlCode: requestParams }).select({ urlCode: 1, longUrl: 1, shortUrl: 1 });
-
-            // res.redirect(findUrlCode.longUrl)
-            await SET_ASYNC(`${requestParams}`, JSON.stringify(findUrlCode));
 
             if (!findUrlCode) {
                 return res.status(404).send({ status: false, message: "Not found this url code." });
             }
-            res.status(200).send({ status: true, data: findUrlCode })
+
+            await SET_ASYNC(`${requestParams}`, JSON.stringify(findUrlCode));
+            res.redirect(findUrlCode.longUrl);
         }
     } catch (error) {
         res.status(500).send({ status: false, message: error.message });

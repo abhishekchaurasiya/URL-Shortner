@@ -11,7 +11,8 @@ let isValidRequestBody = function (requestBody) {
     return Object.keys(requestBody).length > 0;
 };
 
+let validUrl = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-/]))?/
 
 
 
-module.exports = { isValidData, isValidRequestBody }
+module.exports = { isValidData, isValidRequestBody, validUrl }
