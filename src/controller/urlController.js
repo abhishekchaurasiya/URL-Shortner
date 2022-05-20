@@ -1,6 +1,5 @@
 const urlModel = require("../model/urlModel");
 const shortid = require("shortid");
-const validUrl = require("valid-url");
 
 const redis = require("redis");
 
@@ -52,12 +51,6 @@ const urlShorten = async function (req, res) {
         .send({ status: false, message: "base url invalid" });
     }
 
-    // if (!validUrl.isUri(baseUrl)) {
-    //   return res
-    //     .status(400)
-    //     .send({ status: false, message: "base url invalid" });
-    // }
-
     const shorIdCharacters = shortid.characters(
       "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$@"
     );
@@ -76,17 +69,12 @@ const urlShorten = async function (req, res) {
       /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-/]))?/.test(
         longUrl
       );
+
     if (!validLongUrl) {
       return res
         .status(400)
-        .send({ status: false, message: "Long url is required" });
+        .send({ status: false, message: "Invalid Long url" });
     }
-
-    // if (!validUrl.isUri(longUrl)) {
-    //   return res
-    //     .status(400)
-    //     .send({ status: false, message: "Long url invalid" });
-    // }
 
     let longUrlIsAlreadyUsed = await urlModel.findOne({ longUrl });
     if (longUrlIsAlreadyUsed) {
@@ -102,6 +90,7 @@ const urlShorten = async function (req, res) {
     let url = { longUrl, shortUrl, urlCode };
 
     let urlCreate = await urlModel.create(url);
+    // await SET_ASYNC(`${urlCode}`, JSON.stringify(urlCreate));
     res.status(201).send({ status: true, data: urlCreate });
   } catch (error) {
     res.status(500).send({ status: false, message: error.message });
@@ -117,7 +106,6 @@ let getUrlCode = async function (req, res) {
     //convert to object
     const urlData = JSON.parse(cachesUrlData);
     if (cachesUrlData) {
-      console.log("cache");
       return res.redirect(urlData.longUrl);
     } else {
       let findUrlCode = await urlModel
@@ -130,7 +118,6 @@ let getUrlCode = async function (req, res) {
           .send({ status: false, message: "Not found this url code." });
       }
 
-      // res.redirect(findUrlCode.longUrl)
       await SET_ASYNC(`${requestParams}`, JSON.stringify(findUrlCode));
       res.redirect(findUrlCode.longUrl);
     }
