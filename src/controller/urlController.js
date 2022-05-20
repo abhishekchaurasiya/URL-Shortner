@@ -30,13 +30,25 @@ redisClient.on("connect", async function () {
 const SET_ASYNC = promisify(redisClient.SET).bind(redisClient);
 const GET_ASYNC = promisify(redisClient.GET).bind(redisClient);
 
-let baseUrl = "http://localhost:3000";
 
 
 const urlShorten = async function (req, res) {
     try {
+
         let requestBody = req.body;
 
+        const shorIdCharacters = shortid.characters(
+            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$@");
+
+        let urlCode = shortid.generate(shorIdCharacters);
+
+        let baseUrl = "http://localhost:3000";
+
+        let shortUrl = baseUrl + "/" + urlCode;
+
+        // http://localhost:3000/fsdoierlksdfo
+
+        // Here starts validation
         if (!isValidRequestBody(requestBody)) {
             return res.status(400).send({ status: false, message: "No data provided" });
         }
@@ -45,11 +57,6 @@ const urlShorten = async function (req, res) {
             return res.status(400).send({ status: false, message: "base url invalid" });
         }
 
-        const shorIdCharacters = shortid.characters(
-            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$@"
-        );
-
-        const urlCode = shortid.generate(shorIdCharacters);
 
         const { longUrl } = requestBody;
 
@@ -61,19 +68,26 @@ const urlShorten = async function (req, res) {
             return res.status(400).send({ status: false, message: "Long url is invalid" });
         }
 
-        let longUrlIsAlreadyUsed = await urlModel.findOne({ longUrl });
-        if (longUrlIsAlreadyUsed) {
-            return res.status(400).send({ status: false, message: "This Url already exists", data: longUrlIsAlreadyUsed });
+        let cachesUrlData = await GET_ASYNC(`${req.body.longUrl}`);
+        if (cachesUrlData) {
+            return res.status(200).send({ status: true,  data: JSON.parse(cachesUrlData) })
+
+        } else {
+
+            let longUrlIsAlreadyUsed = await urlModel.findOne({ longUrl });
+            if (longUrlIsAlreadyUsed) {
+                return res.status(400).send({ status: false, message: "This Url already exists", LongUrl: longUrlIsAlreadyUsed });
+            }
+
+
+            let url = { longUrl, shortUrl, urlCode };
+
+            let urlCreate = await urlModel.create(url);
+            await SET_ASYNC(`${requestBody}`, JSON.stringify(urlCreate));
+
+            res.status(201).send({ status: true, data: urlCreate });
         }
 
-        let shortUrl = baseUrl + "/" + urlCode;
-
-        // http://localhost:3000/fsdoierlksdfo
-
-        let url = { longUrl, shortUrl, urlCode };
-
-        let urlCreate = await urlModel.create(url);
-        res.status(201).send({ status: true, data: urlCreate });
     } catch (error) {
         res.status(500).send({ status: false, message: error.message });
     }
@@ -97,7 +111,7 @@ let getUrlCode = async function (req, res) {
             }
 
             await SET_ASYNC(`${requestParams}`, JSON.stringify(findUrlCode));
-            res.redirect(findUrlCode.longUrl);
+            res.status(302).redirect(findUrlCode.longUrl);
         }
     } catch (error) {
         res.status(500).send({ status: false, message: error.message });
