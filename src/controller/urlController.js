@@ -42,7 +42,7 @@ const urlShorten = async function (req, res) {
 
         let urlCode = shortid.generate(shorIdCharacters);
 
-        let baseUrl = "http://localhost:3000";
+        let baseUrl = "https://url-shortnering.herokuapp.com/";
 
         let shortUrl = baseUrl + "/" + urlCode;
 
@@ -83,6 +83,7 @@ const urlShorten = async function (req, res) {
             let url = { longUrl, shortUrl, urlCode };
 
             let urlCreate = await urlModel.create(url);
+            
             await SET_ASYNC(`${requestBody}`, JSON.stringify(urlCreate));
 
             res.status(201).send({ status: true, data: urlCreate });
